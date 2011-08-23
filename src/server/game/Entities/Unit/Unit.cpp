@@ -11745,7 +11745,7 @@ void Unit::MeleeDamageBonus(Unit* victim, uint32 *pdamage, WeaponAttackType attT
     else
         TakenFlatBenefit += victim->GetTotalAuraModifier(SPELL_AURA_MOD_RANGED_DAMAGE_TAKEN);
 
-    Player* player = ToPlayer();
+    //Player* plr = ToPlayer();
 
     // Done/Taken total percent damage auras
     float DoneTotalMod = 1.0f;

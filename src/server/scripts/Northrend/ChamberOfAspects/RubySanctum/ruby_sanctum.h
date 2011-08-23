@@ -47,6 +47,16 @@ enum DataTypes
     DATA_BURNING_TREE_3                     = 12,
     DATA_BURNING_TREE_4                     = 13,
     DATA_FLAME_RING                         = 14,
+    DATA_TWILIGHT_HALION 		    = 15,
+    DATA_DAMAGE				    = 16,
+};
+
+enum eAchievementData
+{
+    TWILIGHT_DESTROYER_NORMAL_10    = 4817,
+    TWILIGHT_DESTROYER_NORMAL_25    = 4815,
+    TWILIGHT_DESTROYER_HEROIC_10    = 4818,
+    TWILIGHT_DESTROYER_HEROIC_25    = 4816
 };
 
 enum SharedActions
@@ -84,8 +94,9 @@ enum CreaturesIds
     NPC_METEOR_STRIKE_NORTH                 = 40041,
     NPC_METEOR_STRIKE_EAST                  = 40042,
     NPC_METEOR_STRIKE_WEST                  = 40043,
-    NPC_METEOR_STRIKE_SOUTH                 = 40044,
+    NPC_SUMMON_HALION	                    = 40044,
     NPC_METEOR_STRIKE_FLAME                 = 40055,
+    NPC_COMBUSTION 			    = 40001,
 
     // Xerestrasza
     NPC_XERESTRASZA                         = 40429,
@@ -103,6 +114,7 @@ enum GameObjectsIds
     GO_BURNING_TREE_2                       = 203035,
     GO_BURNING_TREE_3                       = 203036,
     GO_BURNING_TREE_4                       = 203037,
+    GO_FLAME_WALLS3     		    = 203624,
 };
 
 enum WorldStatesRS

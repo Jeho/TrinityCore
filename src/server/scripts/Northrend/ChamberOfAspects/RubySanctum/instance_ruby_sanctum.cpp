@@ -46,6 +46,9 @@ class instance_ruby_sanctum : public InstanceMapScript
                 BaltharusSharedHealth   = 0;
                 FlameWallsGUID          = 0;
                 FlameRingGUID           = 0;
+		TwilightHalionGUID	= 0;
+		HalionPortalGUID	= 0;
+                TwilightPortalGUID	= 0;
                 memset(ZarithianSpawnStalkerGUID, 0, 2*sizeof(uint64));
                 memset(BurningTreeGUID, 0, 4*sizeof(uint64));
             }
@@ -65,9 +68,26 @@ class instance_ruby_sanctum : public InstanceMapScript
                         break;
                     case NPC_HALION:
                         HalionGUID = creature->GetGUID();
+			if (GetBossState(NPC_GENERAL_ZARITHRIAN)==DONE)
+                        {
+                            creature->SetVisible(true);
+                            creature->SetReactState(REACT_AGGRESSIVE);
+                            creature->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
+                            creature->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_OOC_NOT_ATTACKABLE); 
+                        }
+                        else
+                        {
+                            creature->SetVisible(false);
+                            creature->SetReactState(REACT_PASSIVE);
+                            creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
+                        }
                         break;
+		    case NPC_HALION_TWILIGHT:
+			TwilightHalionGUID = creature->GetGUID();
+			break;
                     case NPC_HALION_CONTROLLER:
-                        HalionControllerGUID = creature->GetGUID();
+                        HalionGUID = creature->GetGUID();
+                        break;
                     case NPC_BALTHARUS_TARGET:
                         CrystalChannelTargetGUID = creature->GetGUID();
                         break;
@@ -99,6 +119,8 @@ class instance_ruby_sanctum : public InstanceMapScript
                         break;
                     case GO_FLAME_RING:
                         FlameRingGUID = go->GetGUID();
+			if (GetBossState(DATA_HALION) == DONE)
+			    HandleGameObject(FlameRingGUID, true);
                         break;
                     case GO_BURNING_TREE_1:
                         BurningTreeGUID[0] = go->GetGUID();
@@ -120,6 +142,12 @@ class instance_ruby_sanctum : public InstanceMapScript
                         if (GetBossState(DATA_GENERAL_ZARITHRIAN) == DONE)
                             HandleGameObject(BurningTreeGUID[3], true);
                         break;
+		    case GO_HALION_PORTAL_1:
+			HalionPortalGUID = go->GetGUID();
+			break;
+		    case GO_HALION_PORTAL_EXIT:
+			TwilightPortalGUID = go->GetGUID();
+			break;
                     default:
                         break;
                 }
@@ -169,6 +197,9 @@ class instance_ruby_sanctum : public InstanceMapScript
                         return BurningTreeGUID[3];
                     case DATA_FLAME_RING:
                         return FlameRingGUID;
+		    case DATA_TWILIGHT_HALION:
+			return TwilightHalionGUID;
+			break;
                     default:
                         break;
                 }
@@ -184,7 +215,6 @@ class instance_ruby_sanctum : public InstanceMapScript
                 switch (type)
                 {
                     case DATA_BALTHARUS_THE_WARBORN:
-                    {
                         if (state == DONE && GetBossState(DATA_SAVIANA_RAGEFIRE) == DONE)
                         {
                             HandleGameObject(FlameWallsGUID, true);
@@ -192,9 +222,7 @@ class instance_ruby_sanctum : public InstanceMapScript
                                 zarithrian->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_OOC_NOT_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE);
                         }
                         break;
-                    }
                     case DATA_SAVIANA_RAGEFIRE:
-                    {
                         if (state == DONE && GetBossState(DATA_BALTHARUS_THE_WARBORN) == DONE)
                         {
                             HandleGameObject(FlameWallsGUID, true);
@@ -202,14 +230,39 @@ class instance_ruby_sanctum : public InstanceMapScript
                                 zarithrian->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_OOC_NOT_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE);
                         }
                         break;
-                    }
                     case DATA_GENERAL_ZARITHRIAN:
                         if (GetBossState(DATA_SAVIANA_RAGEFIRE) == DONE && GetBossState(DATA_BALTHARUS_THE_WARBORN) == DONE)
                             HandleGameObject(FlameWallsGUID, state != IN_PROGRESS);
                         if (state == DONE)
-                            if (Creature* halionController = instance->SummonCreature(NPC_HALION_CONTROLLER, HalionControllerSpawnPos))
-                                halionController->AI()->DoAction(ACTION_INTRO_HALION);
+                            if (Creature* halion = instance->GetCreature(GetData64(DATA_HALION)))
+			    {
+				halion->SummonCreature(NPC_SUMMON_HALION, HalionControllerSpawnPos,TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT,20000);
+				halion->SetVisible(true);
+                                halion->SetReactState(REACT_AGGRESSIVE);
+                                halion->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
+                                halion->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_OOC_NOT_ATTACKABLE);
+			     }
                         break;
+		    case DATA_HALION:
+                        if (state==DONE)
+                        {
+                            if (GameObject* flame2 = instance->GetGameObject(GetData64(GO_FLAME_RING)))
+                                flame2->RemoveFromWorld();
+
+                            if (GameObject* flame3 = instance->GetGameObject(GetData64(GO_FLAME_WALLS3)))
+                                flame3->RemoveFromWorld();
+                        }
+			    if (GetBossState(DATA_GENERAL_ZARITHRIAN)==DONE)
+                        {
+                            if (Creature* halion = instance->GetCreature(GetData64(DATA_HALION)))
+                            {
+                                halion->SetVisible(true);
+                                halion->SetReactState(REACT_AGGRESSIVE);
+                                halion->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
+                                halion->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_OOC_NOT_ATTACKABLE);
+                            }
+                         }
+                         break;
                     default:
                         break;
                 }
@@ -297,6 +350,9 @@ class instance_ruby_sanctum : public InstanceMapScript
             uint64 BurningTreeGUID[4];
             uint64 FlameRingGUID;
             uint32 BaltharusSharedHealth;
+	    uint64 TwilightHalionGUID;
+	    uint64 HalionPortalGUID;
+	    uint64 TwilightPortalGUID;
         };
 
         InstanceScript* GetInstanceScript(InstanceMap* map) const

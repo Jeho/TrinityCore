@@ -50,6 +50,7 @@ set(scripts_STAT_SRCS
   Northrend/ChamberOfAspects/RubySanctum/boss_baltharus_the_warborn.cpp
   Northrend/ChamberOfAspects/RubySanctum/boss_saviana_ragefire.cpp
   Northrend/ChamberOfAspects/RubySanctum/boss_general_zarithrian.cpp
+  Northrend/ChamberOfAspects/RubySanctum/boss_halion.cpp
   Northrend/FrozenHalls/HallsOfReflection/halls_of_reflection.h
   Northrend/FrozenHalls/HallsOfReflection/boss_falric.cpp
   Northrend/FrozenHalls/HallsOfReflection/instance_halls_of_reflection.cpp
@@ -191,6 +192,7 @@ set(scripts_STAT_SRCS
   Northrend/DraktharonKeep/drak_tharon_keep.h
   Northrend/DraktharonKeep/boss_tharon_ja.cpp
   Northrend/DraktharonKeep/boss_dred.cpp
+  Northrend/wintergrasp.cpp
 )
 
 message("  -> Prepared: Northrend")

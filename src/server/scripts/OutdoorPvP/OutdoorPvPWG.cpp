@@ -731,8 +731,10 @@ OutdoorPvPWGCreType OutdoorPvPWG::GetCreatureType(uint32 entry) const
         case 28319: // Siege turret
         case 32629: // Siege turret
             return CREATURE_SIEGE_VEHICLE;
-        case 28366: // Wintergrasp Tower cannon
-            return CREATURE_TURRET;
+        case 28366: // Wintergrasp Tower cannon defender
+            return CREATURE_TURRET_DEFENDER;
+	case 70000: // Wintergrasp Tower cannon attacker
+	    return CREATURE_TURRET_ATTACKER;
         case CRE_ENG_A: // Alliance Engineer
         case CRE_ENG_H: // Horde Engineer
             return CREATURE_ENGINEER;
@@ -833,7 +835,8 @@ void OutdoorPvPWG::OnCreatureCreate(Creature *creature)
             creature->CastSpell(creature, SPELL_SPIRITUAL_IMMUNITY, true);
         }
         case CREATURE_SPIRIT_HEALER:
-        case CREATURE_TURRET:
+        case CREATURE_TURRET_DEFENDER:
+	case CREATURE_TURRET_ATTACKER:
         case CREATURE_OTHER:
             UpdateCreatureInfo(creature);
         default:
@@ -1035,7 +1038,7 @@ bool OutdoorPvPWG::UpdateCreatureInfo(Creature *creature)
 
     switch(GetCreatureType(entry))
     {
-        case CREATURE_TURRET:
+        case CREATURE_TURRET_DEFENDER:
         {
             if (isWarTime())
             {
@@ -1051,6 +1054,22 @@ bool OutdoorPvPWG::UpdateCreatureInfo(Creature *creature)
             }
             return false;
         }
+	case CREATURE_TURRET_ATTACKER:
+	{
+	    if (isWarTime())
+	    {
+		if (!creature->isAlive())
+		    creature->Respawn(true);
+		creature->setFaction(WintergraspFaction[getAttackerTeam()]);
+		creature->SetVisible(true);
+	    } else {
+		if (creature->IsVehicle() && creature->GetVehicleKit())
+		    creature->GetVehicleKit()->RemoveAllPassengers();
+		creature->SetVisible(false);
+		creature->setFaction(35);
+	    }
+	    return false;
+	}
         case CREATURE_OTHER:
         {
             if (isWarTime())
@@ -1398,9 +1417,12 @@ void OutdoorPvPWG::HandleKill(Player *killer, Unit *victim)
                 killer->RewardPlayerAndGroupAtEvent(CRE_PVP_KILL, victim);
                 ok = true;
                 break;
-            case CREATURE_TURRET:
+            case CREATURE_TURRET_DEFENDER:
                 ok = true;
                 break;
+	    case CREATURE_TURRET_ATTACKER:
+		ok = true;
+		break;
         }
     }
 

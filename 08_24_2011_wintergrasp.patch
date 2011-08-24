@@ -1,0 +1,13 @@
+diff --git a/sql/custom/OutdoorPvPWG_characters.sql b/sql/custom/OutdoorPvPWG_characters.sql
+new file mode 100644
+index 0000000..400c4a4
+--- /dev/null
++++ b/sql/custom/OutdoorPvPWG_characters.sql
+@@ -0,0 +1,6 @@
++/*WorldStates Characters DB*/
++DELETE FROM worldstates WHERE entry IN (31001,31002,31003,31004);
++INSERT INTO `worldstates` VALUES ('31001', '0', 'WG war status');
++INSERT INTO `worldstates` VALUES ('31002', '0', 'WG clock');
++INSERT INTO `worldstates` VALUES ('31003', '0', 'WG Fortress Defender');
++INSERT INTO `worldstates` VALUES ('31004', '0', 'WG TEMP Battle Control Faction');
+\ No newline at end of file

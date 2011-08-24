@@ -1,0 +1,1 @@
+INSERT INTO `npc_spellclick_spells` (`npc_entry`, `spell_id`, `quest_start`, `quest_start_active`, `quest_end`, `cast_flags`, `aura_required`, `aura_forbidden`, `user_type`) VALUES ('70000', '60962', '0', '0', '0', '1', '0', '0', '0')

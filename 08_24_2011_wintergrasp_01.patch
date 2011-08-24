@@ -1,0 +1,102 @@
+diff --git a/sql/custom/Wintergrasp_turret_attacker.sql b/sql/custom/Wintergrasp_turret_attacker.sql
+new file mode 100644
+index 0000000..e28210f
+--- /dev/null
++++ b/sql/custom/Wintergrasp_turret_attacker.sql
+@@ -0,0 +1 @@
++INSERT INTO creature_template VALUES ('70000', '0', '0', '0', '0', '0', '27101', '0', '0', '0', 'Wintergrasp Tower Cannon', '', 'Gunner', '0', '80', '80', '0', '35', '35', '16777216', '1', '1.14286', '1', '0', '0', '0', '0', '0', '1', '2000', '0', '4', '0', '8', '0', '0', '0', '0', '0', '0', '0', '0', '9', '262184', '0', '0', '0', '0', '0', '0', '0', '0', '0', '51421', '0', '0', '0', '0', '0', '0', '0', '0', '244', '0', '0', '', '0', '3', '9.35979', '1', '1', '0', '0', '0', '0', '0', '0', '0', '121', '1', '0', '377831290', '0', '', '12340');
+\ No newline at end of file
+diff --git a/src/server/scripts/OutdoorPvP/OutdoorPvPWG.cpp b/src/server/scripts/OutdoorPvP/OutdoorPvPWG.cpp
+index 65f1270..0165819 100644
+--- a/src/server/scripts/OutdoorPvP/OutdoorPvPWG.cpp
++++ b/src/server/scripts/OutdoorPvP/OutdoorPvPWG.cpp
+@@ -731,8 +731,10 @@ OutdoorPvPWGCreType OutdoorPvPWG::GetCreatureType(uint32 entry) const
+         case 28319: // Siege turret
+         case 32629: // Siege turret
+             return CREATURE_SIEGE_VEHICLE;
+-        case 28366: // Wintergrasp Tower cannon
+-            return CREATURE_TURRET;
++        case 28366: // Wintergrasp Tower cannon defender
++            return CREATURE_TURRET_DEFENDER;
++	case 70000: // Wintergrasp Tower cannon attacker
++	    return CREATURE_TURRET_ATTACKER;
+         case CRE_ENG_A: // Alliance Engineer
+         case CRE_ENG_H: // Horde Engineer
+             return CREATURE_ENGINEER;
+@@ -833,7 +835,8 @@ void OutdoorPvPWG::OnCreatureCreate(Creature *creature)
+             creature->CastSpell(creature, SPELL_SPIRITUAL_IMMUNITY, true);
+         }
+         case CREATURE_SPIRIT_HEALER:
+-        case CREATURE_TURRET:
++        case CREATURE_TURRET_DEFENDER:
++	case CREATURE_TURRET_ATTACKER:
+         case CREATURE_OTHER:
+             UpdateCreatureInfo(creature);
+         default:
+@@ -1035,7 +1038,7 @@ bool OutdoorPvPWG::UpdateCreatureInfo(Creature *creature)
+ 
+     switch(GetCreatureType(entry))
+     {
+-        case CREATURE_TURRET:
++        case CREATURE_TURRET_DEFENDER:
+         {
+             if (isWarTime())
+             {
+@@ -1051,6 +1054,22 @@ bool OutdoorPvPWG::UpdateCreatureInfo(Creature *creature)
+             }
+             return false;
+         }
++	case CREATURE_TURRET_ATTACKER:
++	{
++	    if (isWarTime())
++	    {
++		if (!creature->isAlive())
++		    creature->Respawn(true);
++		creature->setFaction(WintergraspFaction[getAttackerTeam()]);
++		creature->SetVisible(true);
++	    } else {
++		if (creature->IsVehicle() && creature->GetVehicleKit())
++		    creature->GetVehicleKit()->RemoveAllPassengers();
++		creature->SetVisible(false);
++		creature->setFaction(35);
++	    }
++	    return false;
++	}
+         case CREATURE_OTHER:
+         {
+             if (isWarTime())
+@@ -1398,9 +1417,12 @@ void OutdoorPvPWG::HandleKill(Player *killer, Unit *victim)
+                 killer->RewardPlayerAndGroupAtEvent(CRE_PVP_KILL, victim);
+                 ok = true;
+                 break;
+-            case CREATURE_TURRET:
++            case CREATURE_TURRET_DEFENDER:
+                 ok = true;
+                 break;
++	    case CREATURE_TURRET_ATTACKER:
++		ok = true;
++		break;
+         }
+     }
+ 
+@@ -2195,4 +2217,4 @@ class OutdoorPvP_wintergrasp : public OutdoorPvPScript
+ void AddSC_outdoorpvp_wg()
+ {
+     new OutdoorPvP_wintergrasp();
+-}
+\ No newline at end of file
++}
+diff --git a/src/server/scripts/OutdoorPvP/OutdoorPvPWG.h b/src/server/scripts/OutdoorPvP/OutdoorPvPWG.h
+index 34269f4..70f7391 100644
+--- a/src/server/scripts/OutdoorPvP/OutdoorPvPWG.h
++++ b/src/server/scripts/OutdoorPvP/OutdoorPvPWG.h
+@@ -114,7 +114,8 @@ enum OutdoorPvPWGCreType
+ {
+     CREATURE_OTHER,
+     CREATURE_SIEGE_VEHICLE,
+-    CREATURE_TURRET,
++    CREATURE_TURRET_DEFENDER,
++    CREATURE_TURRET_ATTACKER,
+     CREATURE_ENGINEER,
+     CREATURE_GUARD,
+     CREATURE_SPECIAL,

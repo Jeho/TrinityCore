@@ -296,6 +296,25 @@ namespace Trinity
 
         template<class NOT_INTERESTED> void Visit(GridRefManager<NOT_INTERESTED> &) {}
     };
+    template<class Functor>
+    struct GameObjectWorker
+    {
+        GameObjectWorker(WorldObject const* searcher, Functor& func)
+            : _func(func), _phaseMask(searcher->GetPhaseMask()) {}
+
+        void Visit(GameObjectMapType& m)
+        {
+            for (GameObjectMapType::iterator itr = m.begin(); itr != m.end(); ++itr)
+                if (itr->getSource()->InSamePhase(_phaseMask))
+                    _func(itr->getSource());
+        }
+
+        template<class NOT_INTERESTED> void Visit(GridRefManager<NOT_INTERESTED> &) {}
+
+    private:
+        Functor& _func;
+        uint32 _phaseMask;
+    };
 
     // Unit searchers
 
@@ -1297,6 +1316,34 @@ namespace Trinity
         private:
             TypeID _typeId;
             bool _equals;
+    };
+
+    class ObjectGUIDCheck
+    {
+        public:
+            ObjectGUIDCheck(uint64 GUID) : _GUID(GUID) {}
+            bool operator()(WorldObject* object)
+            {
+                return object->GetGUID() == _GUID;
+            }
+
+        private:
+            uint64 _GUID;
+    };
+
+    class UnitAuraCheck
+    {
+        public:
+            UnitAuraCheck(bool present, uint32 spellId, uint64 casterGUID = 0) : _present(present), _spellId(spellId), _casterGUID(casterGUID) {}
+            bool operator()(Unit* unit)
+            {
+                return unit->HasAura(_spellId, _casterGUID) == _present;
+            }
+
+        private:
+            bool _present;
+            uint32 _spellId;
+            uint64 _casterGUID;
     };
 
     // Player checks and do

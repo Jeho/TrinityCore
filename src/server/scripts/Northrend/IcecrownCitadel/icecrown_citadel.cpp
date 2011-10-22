@@ -273,6 +273,11 @@ enum EventIds
     EVENT_AWAKEN_WARD_4 = 22909,
 };
 
+enum MovementPoints
+{
+    POINT_LAND  = 1,
+};
+
 class FrostwingVrykulSearcher
 {
     public:
@@ -666,10 +671,6 @@ class npc_frost_freeze_trap : public CreatureScript
                     case 11000:
                         _events.ScheduleEvent(EVENT_ACTIVATE_TRAP, uint32(action));
                         break;
-                    case ACTION_STOP_TRAPS:
-                        me->RemoveAurasDueToSpell(SPELL_COLDFLAME_JETS);
-                        _events.CancelEvent(EVENT_ACTIVATE_TRAP);
-                        break;
                     default:
                         break;
                 }
@@ -761,7 +762,6 @@ class boss_sister_svalna : public CreatureScript
                 _EnterCombat();
                 if (Creature* crok = ObjectAccessor::GetCreature(*me, instance->GetData64(DATA_CROK_SCOURGEBANE)))
                     crok->AI()->Talk(SAY_CROK_COMBAT_SVALNA);
-                me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_ATTACKABLE_1);
                 events.ScheduleEvent(EVENT_SVALNA_COMBAT, 9000);
                 events.ScheduleEvent(EVENT_IMPALING_SPEAR, urand(40000, 50000));
                 events.ScheduleEvent(EVENT_AETHER_SHIELD, urand(100000, 110000));
@@ -796,6 +796,7 @@ class boss_sister_svalna : public CreatureScript
             {
                 _JustReachedHome();
                 me->SetReactState(REACT_PASSIVE);
+                me->SetFlying(false);
             }
 
             void DoAction(int32 const action)
@@ -835,17 +836,21 @@ class boss_sister_svalna : public CreatureScript
                 }
             }
 
+            void MovementInform(uint32 type, uint32 id)
+            {
+                if (type != POINT_MOTION_TYPE || id != POINT_LAND)
+                    return;
+
+                _isEventInProgress = false;
+                me->setActive(false);
+                me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_OOC_NOT_ATTACKABLE | UNIT_FLAG_PASSIVE);
+                me->SetFlying(false);
+            }
+
             void SpellHitTarget(Unit* target, SpellInfo const* spell)
             {
                 switch (spell->Id)
                 {
-                    case SPELL_REVIVE_CHAMPION:
-                        if (!_isEventInProgress)
-                            break;
-                        _isEventInProgress = false;
-                        me->setActive(false);
-                        me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_OOC_NOT_ATTACKABLE | UNIT_FLAG_PASSIVE);
-                        break;
                     case SPELL_IMPALING_SPEAR_KILL:
                         me->Kill(target);
                         break;
@@ -853,8 +858,8 @@ class boss_sister_svalna : public CreatureScript
                         if (TempSummon* summon = target->SummonCreature(NPC_IMPALING_SPEAR, *target))
                         {
                             Talk(EMOTE_SVALNA_IMPALE, target->GetGUID());
-                            summon->SetFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_UNK1 | 0x4000);
                             summon->CastCustomSpell(VEHICLE_SPELL_RIDE_HARDCODED, SPELLVALUE_BASE_POINT0, 1, target, false);
+                            summon->SetFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_UNK1 | UNIT_FLAG2_ALLOW_ENEMY_INTERACT);
                         }
                         break;
                     default:
@@ -884,13 +889,15 @@ class boss_sister_svalna : public CreatureScript
                             me->CastSpell(me, SPELL_REVIVE_CHAMPION, false);
                             break;
                         case EVENT_SVALNA_COMBAT:
-                            me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_ATTACKABLE_1);
                             me->SetReactState(REACT_DEFENSIVE);
                             Talk(SAY_SVALNA_AGGRO);
                             break;
                         case EVENT_IMPALING_SPEAR:
                             if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 1, 0.0f, true, -SPELL_IMPALING_SPEAR))
+                            {
+                                DoCast(me, SPELL_AETHER_SHIELD);
                                 DoCast(target, SPELL_IMPALING_SPEAR);
+                            }
                             events.ScheduleEvent(EVENT_IMPALING_SPEAR, urand(20000, 25000));
                             break;
                         default:
@@ -971,7 +978,7 @@ class npc_crok_scourgebane : public CreatureScript
                 }
             }
 
-            void SetGUID(uint64 const guid, int32 type/* = 0*/)
+            void SetGUID(uint64 guid, int32 type/* = 0*/)
             {
                 if (type == ACTION_VRYKUL_DEATH)
                 {
@@ -1505,8 +1512,7 @@ class npc_captain_grondel : public CreatureScript
                     switch (eventId)
                     {
                         case EVENT_GRONDEL_CHARGE_CHECK:
-                            if (CanCast(me->getVictim(), sSpellMgr->GetSpellInfo(SPELL_CHARGE)))
-                                DoCastVictim(SPELL_CHARGE);
+                            DoCastVictim(SPELL_CHARGE);
                             Events.ScheduleEvent(EVENT_GRONDEL_CHARGE_CHECK, 500);
                             break;
                         case EVENT_GRONDEL_MORTAL_STRIKE:
@@ -1815,7 +1821,7 @@ class spell_frost_giant_death_plague : public SpellScriptLoader
             void FilterTargets(std::list<Unit*>& unitList)
             {
                 // Select valid targets for jump
-                unitList.remove_if(DeathPlagueTargetSelector(GetCaster()));
+                unitList.remove_if (DeathPlagueTargetSelector(GetCaster()));
                 if (!unitList.empty())
                 {
                     std::list<Unit*>::iterator itr = unitList.begin();
@@ -1910,9 +1916,25 @@ class spell_svalna_revive_champion : public SpellScriptLoader
                 Trinity::RandomResizeList(unitList, 2);
             }
 
+            void Land(SpellEffIndex /*effIndex*/)
+            {
+                Creature* caster = GetCaster()->ToCreature();
+                if (!caster)
+                    return;
+
+                Position pos;
+                caster->GetPosition(&pos);
+                caster->GetNearPosition(pos, 5.0f, 0.0f);
+                pos.m_positionZ = caster->GetBaseMap()->GetHeight(pos.GetPositionX(), pos.GetPositionY(), pos.GetPositionZ(), true, 20.0f);
+                pos.m_positionZ += 0.05f;
+                caster->SetHomePosition(pos);
+                caster->GetMotionMaster()->MovePoint(POINT_LAND, pos);
+            }
+
             void Register()
             {
                 OnUnitTargetSelect += SpellUnitTargetFn(spell_svalna_revive_champion_SpellScript::RemoveAliveTarget, EFFECT_0, TARGET_UNIT_DEST_AREA_ENTRY);
+                OnEffect += SpellEffectFn(spell_svalna_revive_champion_SpellScript::Land, EFFECT_0, SPELL_EFFECT_SCRIPT_EFFECT);
             }
         };
 
@@ -1935,7 +1957,11 @@ class spell_svalna_remove_spear : public SpellScriptLoader
             {
                 PreventHitDefaultEffect(effIndex);
                 if (Creature* target = GetHitCreature())
-                    target->DespawnOrUnsummon();
+                {
+                    if (Unit* vehicle = target->GetVehicleBase())
+                        vehicle->RemoveAurasDueToSpell(SPELL_IMPALING_SPEAR);
+                    target->DespawnOrUnsummon(1);
+                }
             }
 
             void Register()
@@ -1992,8 +2018,7 @@ class at_icc_shutdown_traps : public AreaTriggerScript
         bool OnTrigger(Player* player, AreaTriggerEntry const* /*areaTrigger*/)
         {
             if (InstanceScript* instance = player->GetInstanceScript())
-                if (instance->GetData(DATA_COLDFLAME_JETS) == IN_PROGRESS)
-                    instance->SetData(DATA_COLDFLAME_JETS, DONE);
+                instance->SetData(DATA_COLDFLAME_JETS, DONE);
             return true;
         }
 };

@@ -7180,7 +7180,7 @@ bool Player::RewardHonor(Unit *uVictim, uint32 groupsize, int32 honor, bool pvpt
             if (!uVictim->ToCreature()->isRacialLeader())
                 return false;
 
-            honor_f = 100.0f;                               // ??? need more info
+            honor_f = 10000.0f;                               // ??? need more info
             victim_rank = 19;                               // HK: Leader
         }
     }

@@ -330,6 +330,7 @@ public:
                     {
                         //Teleport Victor Nefarius way out of the map
                         //sMapMgr->GetMap(me->GetMapId(), me)->CreatureRelocation(me, 0, 0, -5000, 0);
+			me->SetVisible(false);
 
                         //Interrupt any spell casting
                         me->InterruptNonMeleeSpells(false);
